@@ -2,20 +2,21 @@
 
 module Network.Salesforce.Types where
 
-import Data.Text as T
-import Data.ByteString as BS
+import Data.ByteString (ByteString)
 
+import Control.Failure
+import Network.HTTP.Conduit
 import Control.Monad.Reader
 import Control.Applicative
 
-import Network.HTTP.Conduit (Manager)
+import Data.Conduit
 import Data.Aeson
 
 
-data SFToken = SFToken { issuedAt    :: BS.ByteString,
-                         instanceURL :: BS.ByteString,
-                         accessToken :: BS.ByteString,
-                         signature   :: BS.ByteString } deriving Show
+data SFToken = SFToken { issuedAt    :: ByteString,
+                         instanceURL :: ByteString,
+                         accessToken :: ByteString,
+                         signature   :: ByteString } deriving Show
 
 instance FromJSON SFToken where
   parseJSON (Object v) = SFToken <$> (v .: "issued_at") <*>
@@ -26,7 +27,7 @@ instance FromJSON SFToken where
 
 type SFContext m = MonadReader (Manager, SFToken) m
 
-data SObject a = SObject { sobjectClass :: Text,
-                           sobjectId :: Text,
-                           sobjectValues :: [(Text, a)]}
+type RestIO m = (MonadBaseControl IO m, MonadResource m, Failure HttpException m)
 
+type SFConnection m a = ReaderT (Manager, SFToken) (ResourceT m) a
+type SFRunnable m = (MonadIO m, MonadBaseControl IO m, MonadUnsafeIO m, MonadThrow m) 

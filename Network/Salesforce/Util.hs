@@ -41,17 +41,22 @@ sfReq method path = do
   return req{method = method, requestHeaders = [("Authorization", mappend "Bearer " $ accessToken token)]}
 
 sfAction :: (SFContext m, MonadBaseControl IO m, MonadResource m) => Request m -> m Value
-sfAction req = do
-  (mgr, _) <- ask
-  httpJSON req mgr
+sfAction req = liftM fst ask >>= httpJSON req
+
+sfJSON :: (MonadBaseControl IO m, MonadResource m, SFContext m, FromJSON b) => Request m -> m b
+sfJSON req = sfAction req >>= jsonUnpack
 
 sfGet :: (SFContext m, Failure HttpException m) => BSU.ByteString -> m (Request m1)
 sfGet = sfReq "GET"
+
 sfPost :: (SFContext m, Failure HttpException m) => BSU.ByteString -> m (Request m1)
 sfPost = sfReq "POST"
+
 sfPut :: (SFContext m, Failure HttpException m) => BSU.ByteString -> m (Request m1)
 sfPut = sfReq "PUT"
+
 sfDelete :: (SFContext m, Failure HttpException m) => BSU.ByteString -> m (Request m1)
 sfDelete = sfReq "DELETE"
+
 sfPatch :: (SFContext m, Failure HttpException m) => BSU.ByteString -> m (Request m1)
 sfPatch = sfReq "PATCH"
