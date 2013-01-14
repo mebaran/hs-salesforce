@@ -28,6 +28,5 @@ instance FromJSON SFToken where
 type SFContext m = MonadReader (Manager, SFToken) m
 
 type RestIO m = (MonadBaseControl IO m, MonadResource m, Failure HttpException m)
-
 type SFConnection m a = ReaderT (Manager, SFToken) (ResourceT m) a
 type SFRunnable m = (MonadIO m, MonadBaseControl IO m, MonadUnsafeIO m, MonadThrow m) 
