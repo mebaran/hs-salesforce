@@ -9,7 +9,7 @@ import Control.Monad.Reader
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.UTF8 as BSU
 
-import Control.Monad.Trans.Control (MonadBaseControl)
+import Control.Monad.Trans.Control(MonadBaseControl)
 import Data.Conduit (ResourceT, runResourceT)
 import Network.HTTP.Conduit
 
@@ -51,8 +51,7 @@ queryRest q =
                               queryRest' (nextq:acc) nextq
                             Nothing -> return $ concatMap records acc
 
-queryAll :: (SFContext m, RestIO m, FromJSON b) =>
-            BSU.ByteString -> m [b]
+queryAll :: (SFContext m, RestIO m, FromJSON b) => BSU.ByteString -> m [b]
 queryAll qs = do
   fq <- query qs
   queryRest fq
@@ -60,7 +59,7 @@ queryAll qs = do
 -- DML Methods (insert, update, upsert, delete).
 insert :: (RestIO m, SFContext m, ToJSON a, FromJSON b) => BSU.ByteString -> a -> m b
 insert klass js = do 
-  insertion <- sfPost (mconcat ["/sobjects/", klass, "/"])
+  insertion <- sfPost $ mconcat ["/sobjects/", klass, "/"]
   sfJSON insertion{requestBody = RequestBodyLBS $ encode js}
 
 runSF :: MonadBaseControl IO m => Manager -> SFToken -> SFConnection m a -> m a

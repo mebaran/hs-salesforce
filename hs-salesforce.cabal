@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                hs-salesforce
-version:             0.2.0.0
+version:             0.3.0.0
 synopsis:            Haskell bindings to Salesforce REST API.
 -- description:         
 license:             MIT
@@ -15,8 +15,9 @@ build-type:          Simple
 cabal-version:       >=1.8
 
 library
-  exposed-modules:     Network.Salesforce, Network.Salesforce.Util, Network.Salesforce.Types
-  build-depends:       base ==4.5.*, mtl ==2.1.*, bytestring ==0.9.*, utf8-string ==0.3.*, text ==0.11.*,
-                       failure ==0.2.*, monad-control ==0.3.*,
+  exposed-modules:     Network.Salesforce, Network.Salesforce.Util, Network.Salesforce.Types, Network.Salesforce.Bulk
+  build-depends:       base ==4.5.*, mtl ==2.1.*, bytestring ==0.9.*, utf8-string ==0.3.*,
+                       text ==0.11.*, vector == 0.10.*,
+                       failure ==0.2.*, monad-control ==0.3.*, time ==1.4.*, old-locale ==1.0.*, containers ==0.4.*,
                        resourcet ==0.4.*, conduit ==0.5.*, attoparsec-conduit ==0.5.*, http-conduit ==1.8.*,
-                       http-types ==0.7.*, aeson ==0.6.*, time ==1.4.*, old-locale ==1.0.*
+                       http-types ==0.7.*, aeson ==0.6.*, xml-hamlet ==0.4.*, xml-conduit == 1.0.*, cassava ==0.2.*
