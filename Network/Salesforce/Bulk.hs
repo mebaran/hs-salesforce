@@ -28,6 +28,18 @@ import Data.Csv
 
 import Network.Salesforce.Types
 
+data JobResult = JobResult T.Text Bool Bool T.Text
+
+instance FromField Bool where
+    parseField s = case BSU.toString s of
+                     c:_ -> return $ c == 't' || c == 'T'
+                     _ -> return False
+
+instance FromRecord JobResult where
+    parseRecord v = if V.length v >= 4
+                    then JobResult <$> v .! 0 <*> v .! 1 <*> v .! 2 <*> v .! 3
+                    else fail "Not long enough"
+
 httpXML :: (RestIO m, SFContext m) => Request m -> m Document
 httpXML req = do
   (mgr, _) <- ask
@@ -43,8 +55,14 @@ bulkReq method path = do
 bulkPost :: (Failure HttpException m, SFContext m) => BSU.ByteString -> m (Request m1)
 bulkPost = bulkReq "POST"
 
-type Operation = T.Text
 type Object = T.Text
+data Operation = Insert | Upsert | Update | Delete
+
+opText :: Operation -> T.Text
+opText Insert = "insert"
+opText Upsert = "upsert"
+opText Update = "update"
+opText Delete = "delete"
 
 registerJob :: (RestIO m, SFContext m) => Operation -> Object -> m Document
 registerJob operation object = do
@@ -52,7 +70,7 @@ registerJob operation object = do
   let body = RequestBodyLBS $ renderLBS def $ Document (Prologue [] Nothing []) root []
   httpXML $ post {requestBody = body}
   where
-    xmlContent = [xml| <operation> #{operation} <object> #{object} <contentType> CSV |]
+    xmlContent = [xml| <operation> #{opText operation} <object> #{object} <contentType> CSV |]
     root = Element "jobInfo" (M.fromList [("xmlns", "http://www.force.com/2009/06/asyncapi/dataload")]) xmlContent
 
 closeJob :: (RestIO m, SFContext m) => BSU.ByteString -> m Document
@@ -73,22 +91,12 @@ submit jobid csv = do
     Left msg -> fail msg
     Right rows -> return $ rows
 
-data JobResult = Result T.Text Bool Bool T.Text
-
-instance FromField Bool where
-    parseField s = case BSU.toString s of
-                     c:_ -> pure $ c == 't' || c == 'T'
-                     _ -> pure False
-
-instance FromRecord JobResult where
-    parseRecord v = if V.length v >= 4 
-                    then Result <$> v .! 0 <*> v .! 1 <*> v .! 2 <*> v .! 3 
-                    else fail "Not long enough"
-
 bulk :: (RestIO m, SFContext m, ToRecord a) => Operation -> Object -> V.Vector a -> m (V.Vector JobResult)
 bulk operation object objs = do
   jobxml <- registerJob operation object
   let jobid = encodeUtf8 $ head $ fromDocument jobxml $.// laxElement "jobid" >=> content
       submitter = submit jobid
-  submitter $ RequestBodyLBS $ encode objs
-  
+  liftM V.concat $ mapM (submitter . RequestBodyLBS . encode) $ splitEvery batchSize objs
+  where
+    batchSize = 10000
+    splitEvery n v = takeWhile (not . V.null) $ V.take n v : (splitEvery n $ V.drop n v)
